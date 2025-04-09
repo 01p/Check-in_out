@@ -11,8 +11,7 @@ A lightweight, Svelte-powered tool designed to help teams manage check-ins and c
 
 ## Demo
 
-*_(Add a link or screenshot here once available)_*  
-Coming soon!
+![Alt Text](/src/assets/grateful.png)
 
 ## Installation
 
