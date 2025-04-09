@@ -1,6 +1,6 @@
 {
-    "name": "",
-    "short_name": "",
+    "name": "CheckDesk",
+    "short_name": "CheckDesk",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
