@@ -4,6 +4,23 @@ html, body {
 	height: 100%;
 }
 
+
+@keyframes fadeOut {
+    0% {
+        opacity: 1;
+    }
+    99% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+.fade-out-animation {
+    animation: fadeOut 5s forwards; /* 20 seconds duration */
+}
+
 body {
 	color: #333;
 	margin: 0;
