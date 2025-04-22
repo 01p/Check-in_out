@@ -8,7 +8,6 @@ import css from 'rollup-plugin-css-only';
 
 import autoPreprocess from 'svelte-preprocess';
 
-
 const production = !process.env.ROLLUP_WATCH;
 
 function serve() {
@@ -46,7 +45,10 @@ export default {
 
 			compilerOptions: {
 				// enable run-time checks when not in production
-				dev: !production
+				dev: !production,
+				compatibility: {
+					componentApi: 4 // Enable compatibility with Svelte 4's component API
+				}
 			}
 		}),
 		// we'll extract any component CSS out into

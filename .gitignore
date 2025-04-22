@@ -1,4 +1,4 @@
 /node_modules/
 /public/build/
-
 .DS_Store
+/postcss.config.cjs
