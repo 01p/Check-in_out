@@ -1,5 +1,8 @@
 <?php
-// Secure SQLite-based backend for managing questions
+// Enable error reporting for debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Set CORS headers (restrict origins in production)
 header("Access-Control-Allow-Origin: *");
@@ -20,7 +23,13 @@ if (!file_exists(DB_PATH)) {
 
 // Sanitize input
 function sanitize($input) {
-    return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    if (is_string($input)) {
+        // Limit string length to 2000 characters and sanitize
+        return htmlspecialchars(substr($input, 0, 2000), ENT_QUOTES, 'UTF-8');
+    } else {
+        // Return other types (e.g., integers) as-is
+        return $input;
+    }
 }
 
 // Initialize the SQLite database
@@ -36,10 +45,9 @@ function initializeDatabase() {
             expires_at INTEGER NOT NULL
         )");
         chmod(DB_PATH, 0600); // Restrict file permissions
-        echo "Database initialized successfully.\n";
         $db->close();
     } catch (Exception $e) {
-        echo "Error initializing database: " . $e->getMessage();
+        echo json_encode(['error' => 'Database initialization failed: ' . $e->getMessage()]);
         exit;
     }
 }
@@ -72,36 +80,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
 // Handle POST requests (save or update question)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $input = json_decode(file_get_contents('php://input'), true);
+    $input = file_get_contents('php://input');
+    $data = json_decode($input, true);
 
-    if (isset($input['hash'], $input['question'], $input['language'], $input['gradient'])) {
-        $hash = sanitize($input['hash']);
-        $question = sanitize($input['question']);
-        $language = sanitize($input['language']);
-        $gradient = (int)$input['gradient'];
+    // Debugging: Log the incoming payload
+    error_log("Incoming POST payload: " . print_r($data, true));
+
+    if (isset($data['hash'], $data['question'], $data['language'], $data['gradient'])) {
+        $hash = sanitize($data['hash']);
+        $question = sanitize($data['question']);
+        $language = sanitize($data['language']);
+        $gradient = (int)$data['gradient'];
         $expires_at = time() + (24 * 60 * 60); // Expire after 24 hours
 
-        $db = new SQLite3(DB_PATH);
-        $stmt = $db->prepare("INSERT INTO questions (hash, question, language, gradient, expires_at)
-                              VALUES (:hash, :question, :language, :gradient, :expires_at)
-                              ON CONFLICT(hash) DO UPDATE SET
-                              question = excluded.question,
-                              language = excluded.language,
-                              gradient = excluded.gradient,
-                              expires_at = excluded.expires_at");
-        $stmt->bindValue(':hash', $hash, SQLITE3_TEXT);
-        $stmt->bindValue(':question', $question, SQLITE3_TEXT);
-        $stmt->bindValue(':language', $language, SQLITE3_TEXT);
-        $stmt->bindValue(':gradient', $gradient, SQLITE3_INTEGER);
-        $stmt->bindValue(':expires_at', $expires_at, SQLITE3_INTEGER);
+        try {
+            $db = new SQLite3(DB_PATH);
+            $stmt = $db->prepare("INSERT INTO questions (hash, question, language, gradient, expires_at)
+                                  VALUES (:hash, :question, :language, :gradient, :expires_at)
+                                  ON CONFLICT(hash) DO UPDATE SET
+                                  question = excluded.question,
+                                  language = excluded.language,
+                                  gradient = excluded.gradient,
+                                  expires_at = excluded.expires_at");
+            $stmt->bindValue(':hash', $hash, SQLITE3_TEXT);
+            $stmt->bindValue(':question', $question, SQLITE3_TEXT);
+            $stmt->bindValue(':language', $language, SQLITE3_TEXT);
+            $stmt->bindValue(':gradient', $gradient, SQLITE3_INTEGER);
+            $stmt->bindValue(':expires_at', $expires_at, SQLITE3_INTEGER);
 
-        if ($stmt->execute()) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['error' => 'Failed to save question']);
+            if ($stmt->execute()) {
+                echo json_encode(['success' => true]);
+            } else {
+                echo json_encode(['error' => 'Failed to save question']);
+            }
+
+            $db->close();
+        } catch (Exception $e) {
+            echo json_encode(['error' => 'Database error: ' . $e->getMessage()]);
         }
-
-        $db->close();
     } else {
         echo json_encode(['error' => 'Invalid input']);
     }

@@ -5,10 +5,6 @@
   const BACKEND_URL = "http://localhost:8000/index.php"; // Update with your backend URL
 
   let isMenuVisible = false;
-  function toggleMenu() {
-      isMenuVisible = !isMenuVisible;
-  }
-
   let questions = [];
   let selectedLanguage = "en";
   let randomQuestion;
@@ -17,12 +13,21 @@
   let showModal = false;
   let hash = "";
   let shareableLink = "";
+  let mode = "normal"; // Modes: "normal", "presenter", "listener"
+  let pollingInterval;
+  let lastQuestion = null; // Stores the last question
+  let lastUpdateTime = Date.now(); // Stores the timestamp of the last update
 
   function generateHash() {
       return Math.random().toString(36).substring(2, 10);
   }
 
   function copyLink() {
+      if (!hash) {
+          hash = generateHash(); // Generate hash only when copying the link
+          mode = "presenter"; // Switch to presenter mode
+          updateShareableLink();
+      }
       navigator.clipboard.writeText(shareableLink).then(() => {
           alert("Link copied to clipboard!");
       });
@@ -66,17 +71,32 @@
   async function loadQuestions() {
       const response = await fetch(`/questions_${questionSet}.json`);
       questions = await response.json();
-      randomQuestion = getRandomQuestion();
+      randomQuestion = getRandomQuestion(); // Ensure randomQuestion is a string
   }
 
   function getRandomQuestion() {
-      return questions[Math.floor(Math.random() * questions.length)];
+      async function loadQuestions() {
+        const response = await fetch(`/questions_${questionSet}.json`);
+        questions = await response.json();
+        randomQuestion = getRandomQuestion(); // Ensure randomQuestion is a string
+      }      const question = questions[Math.floor(Math.random() * questions.length)];
+      // If the question is an object, return the question for the selected language
+      return typeof question === "string" ? question : question[selectedLanguage] || "No question available.";
   }
 
   function switchQuestion() {
+      if (mode === "listener") {
+          console.log("Shuffle disabled in Listener Mode");
+          return; // Disable shuffle in listener mode
+      }
+
       randomQuestion = getRandomQuestion();
       gradientNumber = (gradientNumber % 10) + 1;
-      updateBackend();
+
+      if (mode === "presenter") {
+          console.log("Updating backend in Presenter Mode");
+          updateBackend(); // Only update the backend in presenter mode
+      }
   }
 
   async function toggleSet() {
@@ -100,7 +120,20 @@
   }
 
   async function updateBackend() {
-      if (!hash || !randomQuestion) return;
+      if (!hash || !randomQuestion) {
+          console.log("Skipping updateBackend: Missing hash or randomQuestion");
+          return;
+      }
+
+      // Ensure `randomQuestion` is a string
+      const payload = {
+          hash,
+          question: typeof randomQuestion === "string" ? randomQuestion : randomQuestion[selectedLanguage] || "",
+          language: selectedLanguage,
+          gradient: gradientNumber,
+      };
+
+      console.log("Sending payload to backend:", payload); // Debugging: Log the payload
 
       try {
           const response = await fetch(BACKEND_URL, {
@@ -108,15 +141,12 @@
               headers: {
                   "Content-Type": "application/json",
               },
-              body: JSON.stringify({
-                  hash,
-                  question: randomQuestion,
-                  language: selectedLanguage,
-                  gradient: gradientNumber,
-              }),
+              body: JSON.stringify(payload),
           });
 
           const data = await response.json();
+          console.log("Parsed backend response:", JSON.stringify(data, null, 2)); // Log the full response
+
           if (!data.success) {
               console.error("Error updating backend:", data.error);
           }
@@ -126,19 +156,29 @@
   }
 
   async function loadQuestionFromBackend() {
-      if (!hash) return;
+      if (!hash) {
+          console.log("Skipping loadQuestionFromBackend: Missing hash");
+          return;
+      }
 
       try {
+          console.log(`Fetching question from backend with hash: ${hash}`);
           const response = await fetch(`${BACKEND_URL}?hash=${hash}`);
           const data = await response.json();
+          console.log("Parsed backend response:", data); // Debugging: Log the parsed response
 
           if (data.error) {
               console.error("Error fetching question:", data.error);
               randomQuestion = "No question found for this session.";
           } else {
-              randomQuestion = data.question;
+              randomQuestion = typeof data.question === "string" ? data.question : "Invalid question format.";
               selectedLanguage = data.language;
               gradientNumber = data.gradient;
+              console.log("Updated frontend state with backend data:", {
+                randomQuestion,
+                selectedLanguage,
+                gradientNumber,
+              });
           }
       } catch (error) {
           console.error("Error loading question from backend:", error);
@@ -146,28 +186,84 @@
   }
 
   function updateShareableLink() {
-      shareableLink = `${window.location.origin}?hash=${hash}`;
-      history.pushState({}, "", `?hash=${hash}`);
+    if (mode === "presenter") {
+      shareableLink = `${window.location.origin}?${hash}`; // Add only the hash to the URL
+      history.pushState({}, "", `?${hash}`); // Update the browser URL
+      console.log(`Updated URL with hash: ${hash}`);
+    }
+  }
+
+  function openInfoModal() {
+      if (!hash && mode === "normal") {
+          hash = generateHash(); // Generate hash when opening the modal in normal mode
+          updateShareableLink();
+          mode = "presenter"; // Switch to presenter mode
+      }
+      showModal = true;
+  }
+
+  function startPolling() {
+    if (mode !== "listener") {
+      console.log("Polling is only active in Listener Mode. Skipping...");
+      return;
+    }
+  
+    if (pollingInterval) {
+      console.log("Polling is already active.");
+      return;
+    }
+  
+    pollingInterval = setInterval(async () => {
+      console.log("Polling backend for updates...");
+      const previousQuestion = randomQuestion; // Store the current question
+      await loadQuestionFromBackend();
+  
+      // Check if the question has changed
+      if (randomQuestion !== previousQuestion) {
+        console.log("New question detected:", randomQuestion);
+      } else {
+        console.log("No new question detected.");
+      }
+    }, 3000); // Poll every 3 seconds
+  }
+  
+  function stopPolling() {
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+      console.log("Polling stopped.");
+    }
   }
 
   onMount(async () => {
-      const params = new URLSearchParams(window.location.search);
-      if (params.has("hash")) {
-          hash = params.get("hash");
+      const query = window.location.search.slice(1); // Remove the "?" from the query string
+      console.log("Raw Query String:", query); // Debugging: Log the raw query string
+
+      if (query && !query.includes("=")) {
+        // If the query string exists and does not contain "=", treat it as the hash
+        hash = query;
+        mode = "listener"; // Enter listener mode
+        console.log(`Detected hash in URL: ${hash}, entering Listener Mode`);
+        await loadQuestionFromBackend();
+
+        // Start polling every 3 seconds in Listener Mode
+        startPolling();
       } else {
-          hash = generateHash();
+        // Default behavior if no valid hash is found
+        mode = "normal";
+        console.log("No hash detected, entering Normal Mode");
+        await loadQuestions();
       }
-      if (params.has("lang")) selectedLanguage = params.get("lang");
-      if (params.has("gradient")) gradientNumber = +params.get("gradient");
-      await loadQuestions();
-      if (params.has("hash")) {
-          const response = await fetch(`${BACKEND_URL}?hash=${hash}`);
-          const data = await response.json();
-          if (data.question) {
-              randomQuestion = data.question;
-          }
+
+      // Only update the shareable link if in Presenter Mode
+      if (mode === "presenter") {
+        updateShareableLink();
       }
-      updateShareableLink();
+  });
+
+  onDestroy(() => {
+    // Clear the polling interval when the component is destroyed
+    stopPolling();
   });
 </script>
 
@@ -193,6 +289,11 @@
     display: flex;
   }
 }
+
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
 </style>
 
 <div class={`full gradient_${gradientNumber}`}>
@@ -211,7 +312,10 @@
     </select>
   </span>
   <span class="bar" style="display: flex; flex-direction: column; align-items: center;">
-    <button on:click={switchQuestion} class="button-mobile">
+    <button
+      on:click={switchQuestion}
+      class="button-mobile {mode === 'listener' ? 'disabled' : ''}"
+    >
       S
     </button>
   </span>
@@ -224,7 +328,7 @@
     </button>
   </span>
   <span class="bar">
-    <button on:click={() => showModal = true} class="button-mobile">I</button>
+    <button on:click={openInfoModal} class="button-mobile">I</button>
   </span>
 </div>
 
@@ -265,7 +369,7 @@
 
 {#if randomQuestion}
   <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-    <p class="question">{randomQuestion[selectedLanguage]}</p>
+    <p class="question">{randomQuestion}</p>
   </div>
 {:else}
   <p>Loading...</p>
@@ -286,13 +390,13 @@
     </span>
     <div style="font-size: 28px; margin-top:4vv; max-width: 70%;">
       <p>Hey there,</p>
-      <p>
-        It's the year of efficiency! Checking-in and checking-out with your team by answering a few questions together will help everyone work more productively and aligned to power through to the best results.
-      </p>
-      <h2>Share remotely</h2>
-      <p>
-        If you work remotely, just share the link (in Slack, Notion, etc.), and everyone will have the same question.
-      </p>
+      {#if mode === "normal"}
+        <p>You are in <strong>Normal Mode</strong>. Click "Copy Link" to enter Presenter Mode.</p>
+      {:else if mode === "presenter"}
+        <p>You are in <strong>Presenter Mode</strong>. Share the link with your team.</p>
+      {:else if mode === "listener"}
+        <p>You are in <strong>Listener Mode</strong>. You are viewing the presenter’s question. Shuffle is disabled.</p>
+      {/if}
       <h2>Share this link with your team to stay in sync:</h2>
       <div>
         <input
