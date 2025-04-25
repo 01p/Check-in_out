@@ -1,6 +1,6 @@
 # Checkin App
 
-![Checkin App](meta.png)
+![Checkin App](public/meta.png)
 
 **Checkin App** is an open-source, Svelte-based application designed for interactive question sharing and collaboration. It supports three distinct modes: **Normal Mode**, **Presenter Mode**, and **Listener Mode**, making it ideal for team check-ins, workshops, or personal reflection.
 
