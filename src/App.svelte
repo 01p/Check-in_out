@@ -126,7 +126,6 @@
           return;
       }
 
-      // Ensure `randomQuestion` is a string
       const payload = {
           hash,
           question: typeof randomQuestion === "string" ? randomQuestion : randomQuestion[selectedLanguage] || "",
@@ -137,7 +136,8 @@
       console.log("Sending payload to backend:", payload); // Debugging: Log the payload
 
       try {
-          const response = await fetch(BACKEND_URL, {
+          const uniqueParam = `?_ts=${Date.now()}`; // Add a timestamp to prevent caching
+          const response = await fetch(`${BACKEND_URL}${uniqueParam}`, {
               method: "POST",
               headers: {
                   "Content-Type": "application/json",
@@ -163,8 +163,9 @@
       }
 
       try {
+          const uniqueParam = `&_ts=${Date.now()}`; // Add a timestamp to prevent caching
           console.log(`Fetching question from backend with hash: ${hash}`);
-          const response = await fetch(`${BACKEND_URL}?hash=${hash}`);
+          const response = await fetch(`${BACKEND_URL}?hash=${hash}${uniqueParam}`);
           const data = await response.json();
           console.log("Parsed backend response:", data); // Debugging: Log the parsed response
 
