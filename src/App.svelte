@@ -3,7 +3,7 @@
   import { readable, derived, get } from 'svelte/store';
 
   // Dynamically set the backend URL based on the frontend's origin
-  const BACKEND_URL = `${window.location.origin}/backend/`;
+  const BACKEND_URL = `${window.location.origin}/backend/index.php`;
 
   let isMenuVisible = false;
   let questions = [];

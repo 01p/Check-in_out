@@ -18,10 +18,12 @@ function checkPassword($inputPassword) {
 
 $message = '';
 $sizeInMB = 0;
+$filePermissions = 'N/A';
 
 if (file_exists($sqliteFile)) {
     $sizeInBytes = filesize($sqliteFile);
     $sizeInMB = $sizeInBytes / (1024 * 1024);
+    $filePermissions = substr(sprintf('%o', fileperms($sqliteFile)), -4); // Get file permissions in octal format
 } else {
     $message = "File does not exist.";
 }
@@ -31,12 +33,22 @@ if (isset($_POST['reset']) && isset($_POST['password'])) {
         if (resetSQLiteFile($sqliteFile)) {
             $message = "File deleted successfully. The backend will recreate it if needed.";
             $sizeInMB = 0;
+            $filePermissions = 'N/A';
         } else {
             $message = "Failed to delete the file.";
         }
     } else {
         $message = "Invalid password.";
     }
+}
+
+// Handle file download
+if (isset($_GET['download']) && file_exists($sqliteFile)) {
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="questions.db"');
+    header('Content-Length: ' . filesize($sqliteFile));
+    readfile($sqliteFile);
+    exit;
 }
 ?>
 <!DOCTYPE html>
@@ -51,11 +63,15 @@ if (isset($_POST['reset']) && isset($_POST['password'])) {
         button { padding: 10px 20px; background-color: #ff4444; color: white; border: none; cursor: pointer; }
         button:hover { background-color: #cc0000; }
         input[type="password"] { padding: 8px; margin-right: 10px; }
+        .debug-info { margin-top: 20px; font-size: 14px; }
+        .debug-info p { margin: 5px 0; }
+        .download-link { color: blue; text-decoration: underline; cursor: pointer; }
     </style>
 </head>
 <body>
     <h2>Checkin/out database reset</h2>
     <p>File size: <?php echo number_format($sizeInMB, 2); ?> MB</p>
+    <p>File permissions: <?php echo $filePermissions; ?></p>
     
     <?php if ($message) { ?>
         <p class="<?php echo strpos($message, 'successfully') !== false ? 'message' : 'error'; ?>">
@@ -68,5 +84,12 @@ if (isset($_POST['reset']) && isset($_POST['password'])) {
         <input type="password" id="password" name="password" required>
         <button type="submit" name="reset">Reset File</button>
     </form>
+
+    <?php if (file_exists($sqliteFile)) { ?>
+        <div class="debug-info">
+            <p><strong>Debug Info:</strong></p>
+            <p><a href="?download=1" class="download-link">Download Database File</a></p>
+        </div>
+    <?php } ?>
 </body>
 </html>
