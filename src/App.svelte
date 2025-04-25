@@ -2,7 +2,8 @@
   import { onMount, onDestroy } from 'svelte';
   import { readable, derived, get } from 'svelte/store';
 
-  const BACKEND_URL = "http://localhost:8000/index.php"; // Update with your backend URL
+  // Dynamically set the backend URL based on the frontend's origin
+  const BACKEND_URL = `${window.location.origin}/backend/`;
 
   let isMenuVisible = false;
   let questions = [];
