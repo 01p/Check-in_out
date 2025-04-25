@@ -235,6 +235,15 @@
     }
   }
 
+  function leaveListenerMode() {
+    stopPolling(); // Stop the polling interval
+    mode = "normal"; // Switch to Normal Mode
+    hash = ""; // Clear the hash
+    console.log("Switched to Normal Mode");
+    loadQuestions(); // Load questions for Normal Mode
+    showModal = false; // Close the modal
+  }
+
   onMount(async () => {
       const query = window.location.search.slice(1); // Remove the "?" from the query string
       console.log("Raw Query String:", query); // Debugging: Log the raw query string
@@ -298,6 +307,7 @@
 
 <div class={`full gradient_${gradientNumber}`}>
 <div class="side-mobil" style="margin-left:10%;">
+{#if mode !== "listener"}
   <span class="bar">
     <button on:click={toggleSet} class="button-mobile">
       {questionSet === "in" ? "O" : "I"}
@@ -311,15 +321,13 @@
       <option value="fr">FR</option>
     </select>
   </span>
-  <span class="bar" style="display: flex; flex-direction: column; align-items: center;">
-    <button
-      on:click={switchQuestion}
-      class="button-mobile {mode === 'listener' ? 'disabled' : ''}"
-    >
+  <span class="bar">
+    <button on:click={switchQuestion} class="button-mobile">
       S
     </button>
   </span>
-  <p style="font-size:9px; margin:0px; writing-mode: vertical-rl; text-orientation: upright;">
+{/if}
+  <p style="font-size:9px; margin:0px; writing-mode: vertical-rl; text-orientation: upright;" class="fade-out-animation">
     Double Tap
   </p>
   <span class="bar">
@@ -332,29 +340,28 @@
   </span>
 </div>
 
-<div class="side desktop" style="display: flex; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px;">
-  <span class="bar" style="margin-right: 10px;">
-    <h1 style="color:#000000; margin-right: 10px;">
-      {questionSet === "in" ? "Check-In" : "Check-Out"}
-    </h1>
-    <button on:click={toggleSet} class="button">
-      {questionSet === "in" ? "Check-Out" : "Check-In"}
-    </button>
-  </span>
-  <span class="bar" style="margin-right: 10px;">
-    <select id="language-select" bind:value={selectedLanguage} class="dropdown">
-      <option value="en">English</option>
-      <option value="de">German</option>
-      <option value="it">Italian</option>
-      <option value="fr">French</option>
-    </select>
-  </span>
-  <span class="bar" style="margin-right: 10px;">
-    <button on:click={switchQuestion} class="button">
-      Shuffle Question
-    </button>
-    <p style="font-size: 7px; margin: 5px 0;" class="fade-out-animation">(Press Space to Shuffle)</p>
-  </span>
+<div class="side desktop">
+  {#if mode !== "listener"}
+    <span class="bar" style="margin-right: 10px;">
+      <button on:click={toggleSet} class="button">
+        {questionSet === "in" ? "Check-Out" : "Check-In"}
+      </button>
+    </span>
+    <span class="bar" style="margin-right: 10px;">
+      <select id="language-select" bind:value={selectedLanguage} class="dropdown">
+        <option value="en">English</option>
+        <option value="de">German</option>
+        <option value="it">Italian</option>
+        <option value="fr">French</option>
+      </select>
+    </span>
+    <span class="bar" style="margin-right: 10px;">
+      <button on:click={switchQuestion} class="button">
+        Shuffle Question
+      </button>
+      <p style="font-size: 7px; margin: 5px 0;" class="fade-out-animation">(Press Space to Shuffle)</p>
+    </span>
+  {/if}
   <span class="bar" style="margin-right: 10px;">
     <button on:click={toggleFullscreen} class="button">
       Toggle Fullscreen
@@ -388,7 +395,7 @@
     >
       &times;
     </span>
-    <div style="font-size: 28px; margin-top:4vv; max-width: 70%;">
+    <div style="font-size: 28px; margin-top: 4vv; max-width: 70%;">
       <p>Hey there,</p>
       {#if mode === "normal"}
         <p>You are in <strong>Normal Mode</strong>. Click "Copy Link" to enter Presenter Mode.</p>
@@ -396,7 +403,11 @@
         <p>You are in <strong>Presenter Mode</strong>. Share the link with your team.</p>
       {:else if mode === "listener"}
         <p>You are in <strong>Listener Mode</strong>. You are viewing the presenter’s question. Shuffle is disabled.</p>
+        <button on:click={leaveListenerMode} class="button">
+          Leave Listener Mode
+        </button>
       {/if}
+
       <h2>Share this link with your team to stay in sync:</h2>
       <div>
         <input
@@ -405,10 +416,17 @@
           value={shareableLink}
           style="width: 100%; margin-bottom: 10px;"
         />
-        <button on:click={copyLink}>Copy Link</button>
+        <button on:click={copyLink} class="button-copy-link">
+          Copy Link
+        </button>
       </div>
+
       <p>
         When someone opens the link, they will see the same question as you.
+      </p>
+
+      <p style="margin-top: 20px; font-size: 18px; line-height: 1.5;">
+        Our new check-in app invites you to pause, reflect, and connect with others through heartfelt questions. Share what moves you, discover what binds us, and spark conversations that matter. Choose prompts that feel right for the moment or create your own. Begin your journey of deeper connection today.
       </p>
     </div>
   </div>

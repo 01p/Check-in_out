@@ -17,6 +17,30 @@ html, body {
     }
 }
 
+@keyframes rotateGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rotateQuestionGradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .fade-out-animation {
     animation: fadeOut 5s forwards; /* 20 seconds duration */
 }
@@ -135,11 +159,15 @@ button:hover {
   }
 .gradient_1{
 background-image: radial-gradient( circle farthest-corner at 10% 20%,  rgba(176,229,208,1) 42%, rgba(92,202,238,0.41) 93.6% );
+animation: rotateGradient 10s infinite linear;
+background-size: 200% 200%;
 }
 
 
 .gradient_2{
 	background-image: radial-gradient( circle farthest-corner at 10% 20%,  rgba(142,224,251,1) 0%, rgba(255,121,225,1) 100.7% );	
+	animation: rotateGradient 10s infinite linear;
+	background-size: 200% 200%;
 }
 
 .gradient_3{
@@ -180,6 +208,8 @@ left: 0;
 width: 100%;
 height: 100%;
 z-index: 0;
+animation: rotateGradient 10s infinite linear; /* Only animate the gradient */
+background-size: 200% 200%;
 }
 .side
 {
@@ -194,6 +224,15 @@ z-index: 0;
 
 	  align-items: center;  
 	  gap: 10px;
+}
+
+.side.desktop {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px; /* Add padding for better spacing */
+  border-radius: 8px; /* Optional: Add rounded corners */
 }
 
 .bar{
@@ -214,18 +253,18 @@ max-width: 55%;
     transition: transform 1s, opacity 1s;
 }
 
-	.question
-	{
-		font-weight: 500;
-		line-height: 1em;
-		font-size: 15vh;
-		padding: 4%;
-		/*color:#ffffff;*/
-
-		background: -webkit-linear-gradient(0deg, #000000 0%, #48abe0 100%);
-		-webkit-background-clip: text;
-		-webkit-text-fill-color: transparent;
-	}
+.question
+{
+	font-weight: 500;
+	line-height: 1em;
+	font-size: 15vh;
+	padding: 4%;
+	background: -webkit-linear-gradient(0deg, #000000 0%, #48abe0 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	background-size: 200% 200%; /* Makes the gradient larger for smooth animation */
+	animation: rotateQuestionGradient 10s infinite linear; /* 10 seconds for a smooth loop */
+}
 
 	.toggle-btn {
 		display: inline-block;
@@ -260,7 +299,7 @@ max-width: 55%;
   }
 
   .modal-content {
-   //Background-color: #161111;
+   
     padding: 1rem;
     width: 100%;
     height: 100%;
@@ -328,9 +367,10 @@ max-width: 55%;
 
 
 
-button {
-    line-height: 0.4em;
-    border: 2px solid #000000;
+button,
+#language-select {
+    line-height: 1em;
+    border: 1px solid #000000;
     border-radius: 30px;
     padding:10px 10px;
 
@@ -363,15 +403,19 @@ button {
 
 .dropdown {
 	line-height: 0.4em;
-    border: 2px solid #000000;
+    border: 1px solid #000000;
     padding:10px 10px;
     border-radius: 30px;
     font-size: 12px;
 }
 
 .button-mobile {
-	line-height: 1em;
+	line-height: 1em;‚
 	border: 4px solid #000000;
 	border-radius: 30px;
 	font-size: 2em;
+}
+
+.hidden {
+  display: none;
 }
