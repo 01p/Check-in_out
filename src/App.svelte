@@ -122,7 +122,7 @@
 
   async function updateBackend() {
       if (!hash || !randomQuestion) {
-          console.log("Skipping updateBackend: Missing hash or randomQuestion");
+          // console.log("Skipping updateBackend: Missing hash or randomQuestion");
           return;
       }
 
@@ -133,7 +133,7 @@
           gradient: gradientNumber,
       };
 
-      console.log("Sending payload to backend:", payload); // Debugging: Log the payload
+      // console.log("Sending payload to backend:", payload); // Debugging: Log the payload
 
       try {
           const uniqueParam = `?_ts=${Date.now()}`; // Add a timestamp to prevent caching
@@ -146,44 +146,44 @@
           });
 
           const data = await response.json();
-          console.log("Parsed backend response:", JSON.stringify(data, null, 2)); // Log the full response
+          // console.log("Parsed backend response:", JSON.stringify(data, null, 2)); // Log the full response
 
           if (!data.success) {
-              console.error("Error updating backend:", data.error);
+              // console.error("Error updating backend:", data.error);
           }
       } catch (error) {
-          console.error("Error updating backend:", error);
+          // console.error("Error updating backend:", error);
       }
   }
 
   async function loadQuestionFromBackend() {
       if (!hash) {
-          console.log("Skipping loadQuestionFromBackend: Missing hash");
+          // console.log("Skipping loadQuestionFromBackend: Missing hash");
           return;
       }
 
       try {
           const uniqueParam = `&_ts=${Date.now()}`; // Add a timestamp to prevent caching
-          console.log(`Fetching question from backend with hash: ${hash}`);
+          // console.log(`Fetching question from backend with hash: ${hash}`);
           const response = await fetch(`${BACKEND_URL}?hash=${hash}${uniqueParam}`);
           const data = await response.json();
-          console.log("Parsed backend response:", data); // Debugging: Log the parsed response
+          // console.log("Parsed backend response:", data); // Debugging: Log the parsed response
 
           if (data.error) {
-              console.error("Error fetching question:", data.error);
+              // console.error("Error fetching question:", data.error);
               randomQuestion = "No question found for this session.";
           } else {
               randomQuestion = typeof data.question === "string" ? data.question : "Invalid question format.";
               selectedLanguage = data.language;
               gradientNumber = data.gradient;
-              console.log("Updated frontend state with backend data:", {
-                randomQuestion,
-                selectedLanguage,
-                gradientNumber,
-              });
+              // console.log("Updated frontend state with backend data:", {
+              //   randomQuestion,
+              //   selectedLanguage,
+              //   gradientNumber,
+              // });
           }
       } catch (error) {
-          console.error("Error loading question from backend:", error);
+          // console.error("Error loading question from backend:", error);
       }
   }
 
@@ -206,34 +206,41 @@
 
   function startPolling() {
     if (mode !== "listener") {
-      console.log("Polling is only active in Listener Mode. Skipping...");
-      return;
+        // console.log("Polling is only active in Listener Mode. Skipping...");
+        return;
     }
-  
+
     if (pollingInterval) {
-      console.log("Polling is already active.");
-      return;
+        // console.log("Polling is already active.");
+        return;
     }
-  
+
+    // console.log("Starting polling...");
     pollingInterval = setInterval(async () => {
-      console.log("Polling backend for updates...");
-      const previousQuestion = randomQuestion; // Store the current question
-      await loadQuestionFromBackend();
-  
-      // Check if the question has changed
-      if (randomQuestion !== previousQuestion) {
-        console.log("New question detected:", randomQuestion);
-      } else {
-        console.log("No new question detected.");
-      }
+        // console.log("Polling backend for updates...");
+        const previousQuestion = randomQuestion; // Store the current question
+        await loadQuestionFromBackend();
+
+        // Check if the question has changed
+        if (randomQuestion !== previousQuestion) {
+            // console.log("New question detected:", randomQuestion);
+        } else {
+            // console.log("No new question detected.");
+        }
     }, 3000); // Poll every 3 seconds
-  }
-  
+
+    // Stop polling after 5 minutes (300,000ms)
+    setTimeout(() => {
+        // console.log("Polling timeout reached. Stopping polling.");
+        stopPolling();
+    }, 600000); // 10 minutes
+}
+
   function stopPolling() {
     if (pollingInterval) {
       clearInterval(pollingInterval);
       pollingInterval = null;
-      console.log("Polling stopped.");
+      // console.log("Polling stopped.");
     }
   }
 
@@ -241,20 +248,20 @@
     stopPolling(); // Stop the polling interval
     mode = "normal"; // Switch to Normal Mode
     hash = ""; // Clear the hash
-    console.log("Switched to Normal Mode");
+    // console.log("Switched to Normal Mode");
     loadQuestions(); // Load questions for Normal Mode
     showModal = false; // Close the modal
   }
 
   onMount(async () => {
       const query = window.location.search.slice(1); // Remove the "?" from the query string
-      console.log("Raw Query String:", query); // Debugging: Log the raw query string
+      // console.log("Raw Query String:", query); // Debugging: Log the raw query string
 
       if (query && !query.includes("=")) {
         // If the query string exists and does not contain "=", treat it as the hash
         hash = query;
         mode = "listener"; // Enter listener mode
-        console.log(`Detected hash in URL: ${hash}, entering Listener Mode`);
+        // console.log(`Detected hash in URL: ${hash}, entering Listener Mode`);
         await loadQuestionFromBackend();
 
         // Start polling every 3 seconds in Listener Mode
@@ -262,7 +269,7 @@
       } else {
         // Default behavior if no valid hash is found
         mode = "normal";
-        console.log("No hash detected, entering Normal Mode");
+        // console.log("No hash detected, entering Normal Mode");
         await loadQuestions();
       }
 

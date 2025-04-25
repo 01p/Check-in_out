@@ -257,7 +257,12 @@ max-width: 55%;
 {
 	font-weight: 500;
 	line-height: 1em;
-	font-size: 15vh;
+	font-size: clamp(1rem, 5vw, 10rem); /* Adjust the values as needed */
+	text-align: center;
+	word-wrap: break-word; /* Ensure long words break to fit the viewport */
+	overflow-wrap: break-word;
+	max-width: 90vw; /* Ensure the text stays within the viewport */
+	margin: 0 auto; /* Center the text horizontally */
 	padding: 4%;
 	background: -webkit-linear-gradient(0deg, #000000 0%, #48abe0 100%);
 	-webkit-background-clip: text;
